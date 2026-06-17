@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh;padding-bottom:4rem}
-.container{max-width:900px;margin:0 auto;padding:0 16px}
+.container{max-width:960px;margin:0 auto;padding:0 16px}
 h1{font-size:26px;font-weight:500;margin-bottom:6px}
 .sub{font-size:14px;color:#6b6b68}
 .header{padding:2rem 0 1.25rem;border-bottom:1px solid #e5e5e3;margin-bottom:1.5rem}
@@ -20,6 +20,9 @@ input:focus,select:focus{border-color:#1D9E75}
 .swap{width:36px;height:38px;border-radius:50%;border:1px solid #e5e5e3;background:#f5f5f3;font-size:18px;cursor:pointer;flex-shrink:0}
 .search-btn{width:100%;height:38px;background:#1D9E75;color:#fff;border:none;border-radius:8px;font-weight:500;font-size:14px;cursor:pointer}
 .search-btn:disabled{opacity:0.5;cursor:not-allowed}
+.trip-toggle{display:flex;gap:8px;margin-bottom:14px}
+.trip-btn{padding:7px 20px;border-radius:100px;border:1px solid #e5e5e3;background:#fff;font-size:13px;cursor:pointer;font-weight:400}
+.trip-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75;font-weight:500}
 .tabs{display:flex;gap:6px;margin-bottom:12px}
 .tab{padding:7px 16px;border-radius:8px;font-size:13px;border:1px solid #e5e5e3;background:#fff;cursor:pointer}
 .tab.active{background:#f5f5f3;font-weight:500}
@@ -36,7 +39,7 @@ input:focus,select:focus{border-color:#1D9E75}
 .muted{font-size:12px;color:#6b6b68}
 .best-badge{font-size:11px;padding:2px 8px;border-radius:100px;background:#E1F5EE;color:#085041;font-weight:500;margin-left:6px}
 .stops-badge{font-size:12px;padding:3px 10px;border-radius:100px;border:1px solid #e5e5e3;color:#6b6b68}
-.book-btn{font-size:13px;padding:5px 12px;border-radius:6px;border:1px solid #e5e5e3;background:#fff;display:inline-block;margin-top:6px;cursor:pointer}
+.book-btn{font-size:13px;padding:5px 12px;border-radius:6px;border:1px solid #e5e5e3;background:#fff;display:inline-block;margin-top:6px}
 .error{margin-top:10px;padding:10px 14px;background:#FCEBEB;border:1px solid #F09595;border-radius:8px;font-size:13px;color:#A32D2D}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:8px 10px;border-bottom:1px solid #e5e5e3;color:#6b6b68;font-weight:500;white-space:nowrap}
@@ -51,6 +54,7 @@ tr.best-row td{background:#E1F5EE}
 .filter-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px}
 .chip{padding:4px 12px;border-radius:100px;font-size:12px;border:1px solid #e5e5e3;background:#fff;cursor:pointer}
 .chip.active{background:#f5f5f3;font-weight:500}
+.oneway-note{font-size:12px;color:#6b6b68;background:#f5f5f3;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:inline-block}
 @media(max-width:600px){.flight-card{flex-wrap:wrap}.flight-mid,.flight-right{flex:unset;width:100%;text-align:left}}
 </style>
 </head>
@@ -58,10 +62,16 @@ tr.best-row td{background:#E1F5EE}
 <div class="container">
   <div class="header">
     <h1>✈ Flight Price Portal</h1>
-    <p class="sub">Compare airlines & aggregators · Click any result to book</p>
+    <p class="sub">Compare airlines & aggregators · One Way & Round Trip · Click any result to book</p>
   </div>
 
   <div class="card">
+    <!-- Trip type toggle -->
+    <div class="trip-toggle">
+      <button class="trip-btn active" id="btnRT" onclick="setTripType('round')">⇄ Round Trip</button>
+      <button class="trip-btn" id="btnOW" onclick="setTripType('oneway')">→ One Way</button>
+    </div>
+
     <div class="row">
       <div class="field"><label>From</label>
         <select id="origin">
@@ -75,7 +85,7 @@ tr.best-row td{background:#E1F5EE}
         </select>
       </div>
       <div class="field"><label>Depart</label><input type="date" id="depart"></div>
-      <div class="field"><label>Return</label><input type="date" id="ret"></div>
+      <div class="field" id="retField"><label>Return</label><input type="date" id="ret"></div>
     </div>
     <div class="row">
       <div class="field"><label>Passengers</label>
@@ -101,11 +111,14 @@ tr.best-row td{background:#E1F5EE}
     <div class="empty" id="emptyState">
       <div style="font-size:40px;margin-bottom:12px">✈️</div>
       <div style="font-size:16px;font-weight:500;margin-bottom:6px">Search to compare prices</div>
-      <div class="muted">Select your route and dates above, then hit Search</div>
+      <div class="muted">Select One Way or Round Trip, then hit Search</div>
     </div>
     <div id="resultsList" style="display:none">
       <div class="filter-row">
-        <div id="metaText" style="font-size:13px;font-weight:500"></div>
+        <div>
+          <div id="metaText" style="font-size:13px;font-weight:500;margin-bottom:4px"></div>
+          <div id="tripNote" class="oneway-note"></div>
+        </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="chip active" onclick="setFilter('all',this)">All</button>
           <button class="chip" onclick="setFilter('direct',this)">Direct</button>
@@ -136,21 +149,33 @@ tr.best-row td{background:#E1F5EE}
 
 <script>
 const SOURCES=[
-  {id:'gf',name:'Google Flights',icon:'GF',color:'#4285F4',type:'agg',url:(o,d,dep,ret,p)=>`https://www.google.com/travel/flights/search?tfs=CBwQAhoeagcIARIDDFdAEgcKA${o}agcIARIDDFdAEgcKA${d}&num_adults=${p}`},
-  {id:'ss',name:'Skyscanner',icon:'SS',color:'#00A0DC',type:'agg',url:(o,d,dep,ret,p)=>`https://www.skyscanner.net/transport/flights/${o.toLowerCase()}/${d.toLowerCase()}/${dep.replace(/-/g,'').slice(2)}/${ret?ret.replace(/-/g,'').slice(2):''}/?adults=${p}`},
-  {id:'kk',name:'Kayak',icon:'KY',color:'#FF690F',type:'agg',url:(o,d,dep,ret,p)=>`https://www.kayak.com/flights/${o}-${d}/${dep}${ret?'/'+ret:''}/${p}adults`},
-  {id:'mm',name:'Momondo',icon:'MO',color:'#E2007A',type:'agg',url:(o,d,dep,ret,p)=>`https://www.momondo.com/flight-search/${o}-${d}/${dep}${ret?'/'+ret:''}?adults=${p}`},
-  {id:'wb',name:'Wego',icon:'WG',color:'#2ABA6C',type:'agg',url:(o,d,dep,ret,p)=>`https://www.wego.com/flights/${o}-${d}?adults=${p}`},
-  {id:'ek',name:'Emirates',icon:'EK',color:'#D4073D',type:'air',url:(o,d,dep,ret,p)=>`https://www.emirates.com/english/book/flights/?origin=${o}&destination=${d}&depart_date=${dep}&return_date=${ret||''}&adults=${p}`},
-  {id:'qr',name:'Qatar Airways',icon:'QR',color:'#5C0632',type:'air',url:(o,d,dep,ret,p)=>`https://www.qatarairways.com/en/booking/flights.html?from=${o}&to=${d}&departure=${dep}&return=${ret||''}&adults=${p}`},
-  {id:'ey',name:'Etihad',icon:'EY',color:'#BD8B13',type:'air',url:(o,d,dep,ret,p)=>`https://www.etihad.com/en-ae/book/flights?orig=${o}&dest=${d}&departDate=${dep}&returnDate=${ret||''}&adults=${p}`},
-  {id:'sv',name:'Saudia',icon:'SV',color:'#006937',type:'air',url:(o,d,dep,ret,p)=>`https://www.saudia.com/en/booking/book-flight?from=${o}&to=${d}&depart=${dep}&return=${ret||''}&adults=${p}`},
-  {id:'fy',name:'flyDubai',icon:'FZ',color:'#E31837',type:'air',url:(o,d,dep,ret,p)=>`https://www.flydubai.com/en/plan/book-flights?from=${o}&to=${d}&dep=${dep}&ret=${ret||''}&adults=${p}`},
-  {id:'ad',name:'Air Arabia',icon:'G9',color:'#E2231A',type:'air',url:(o,d,dep,ret,p)=>`https://www.airarabia.com/en/book-flight?origin=${o}&destination=${d}&depart=${dep}&return=${ret||''}&pax=${p}`},
-  {id:'tk',name:'Turkish Airlines',icon:'TK',color:'#C8102E',type:'air',url:(o,d,dep,ret,p)=>`https://www.turkishairlines.com/en-int/flights/?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret||''}&adult=${p}`},
+  {id:'gf',name:'Google Flights',icon:'GF',color:'#4285F4',type:'agg',
+    url:(o,d,dep,ret,p)=>ret?`https://www.google.com/travel/flights/search?tfs=CBwQAhoeagcIARIDDFdAEgcKA${o}agcIARIDDFdAEgcKA${d}&num_adults=${p}`:`https://www.google.com/travel/flights/search?tfs=CBwQAhoeagcIARIDDFdAEgcKA${o}&num_adults=${p}`},
+  {id:'ss',name:'Skyscanner',icon:'SS',color:'#00A0DC',type:'agg',
+    url:(o,d,dep,ret,p)=>ret?`https://www.skyscanner.net/transport/flights/${o.toLowerCase()}/${d.toLowerCase()}/${dep.replace(/-/g,'').slice(2)}/${ret.replace(/-/g,'').slice(2)}/?adults=${p}`:`https://www.skyscanner.net/transport/flights/${o.toLowerCase()}/${d.toLowerCase()}/${dep.replace(/-/g,'').slice(2)}/?adults=${p}`},
+  {id:'kk',name:'Kayak',icon:'KY',color:'#FF690F',type:'agg',
+    url:(o,d,dep,ret,p)=>ret?`https://www.kayak.com/flights/${o}-${d}/${dep}/${ret}/${p}adults`:`https://www.kayak.com/flights/${o}-${d}/${dep}/${p}adults`},
+  {id:'mm',name:'Momondo',icon:'MO',color:'#E2007A',type:'agg',
+    url:(o,d,dep,ret,p)=>ret?`https://www.momondo.com/flight-search/${o}-${d}/${dep}/${ret}?adults=${p}`:`https://www.momondo.com/flight-search/${o}-${d}/${dep}?adults=${p}`},
+  {id:'wb',name:'Wego',icon:'WG',color:'#2ABA6C',type:'agg',
+    url:(o,d,dep,ret,p)=>`https://www.wego.com/flights/${o}-${d}?adults=${p}&tripType=${ret?'roundtrip':'oneway'}`},
+  {id:'ek',name:'Emirates',icon:'EK',color:'#D4073D',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.emirates.com/english/book/flights/?origin=${o}&destination=${d}&depart_date=${dep}&return_date=${ret||''}&adults=${p}&type=${ret?'R':'O'}`},
+  {id:'qr',name:'Qatar Airways',icon:'QR',color:'#5C0632',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.qatarairways.com/en/booking/flights.html?from=${o}&to=${d}&departure=${dep}&return=${ret||''}&adults=${p}&tripType=${ret?'R':'O'}`},
+  {id:'ey',name:'Etihad',icon:'EY',color:'#BD8B13',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.etihad.com/en-ae/book/flights?journeyType=${ret?'RoundTrip':'OneWay'}&orig=${o}&dest=${d}&departDate=${dep}&returnDate=${ret||''}&adults=${p}`},
+  {id:'sv',name:'Saudia',icon:'SV',color:'#006937',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.saudia.com/en/booking/book-flight?from=${o}&to=${d}&depart=${dep}&return=${ret||''}&adults=${p}`},
+  {id:'fy',name:'flyDubai',icon:'FZ',color:'#E31837',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.flydubai.com/en/plan/book-flights?from=${o}&to=${d}&dep=${dep}&ret=${ret||''}&adults=${p}&tripType=${ret?'R':'O'}`},
+  {id:'ad',name:'Air Arabia',icon:'G9',color:'#E2231A',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.airarabia.com/en/book-flight?origin=${o}&destination=${d}&depart=${dep}&return=${ret||''}&pax=${p}`},
+  {id:'tk',name:'Turkish Airlines',icon:'TK',color:'#C8102E',type:'air',
+    url:(o,d,dep,ret,p)=>`https://www.turkishairlines.com/en-int/flights/?from=${o}&to=${d}&departureDate=${dep}&returnDate=${ret||''}&adult=${p}`},
 ]
 
-let results=[], activeFilter='all'
+let results=[], activeFilter='all', tripType='round'
 
 function pad(n){return String(n).padStart(2,'0')}
 function fmt(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
@@ -158,6 +183,16 @@ const d1=new Date();d1.setDate(d1.getDate()+30)
 const d2=new Date();d2.setDate(d2.getDate()+44)
 document.getElementById('depart').value=fmt(d1)
 document.getElementById('ret').value=fmt(d2)
+
+function setTripType(type){
+  tripType=type
+  document.getElementById('btnRT').classList.toggle('active',type==='round')
+  document.getElementById('btnOW').classList.toggle('active',type==='oneway')
+  const retField=document.getElementById('retField')
+  retField.style.display=type==='oneway'?'none':'flex'
+  if(type==='oneway') document.getElementById('ret').value=''
+  else document.getElementById('ret').value=fmt(d2)
+}
 
 function swapAirports(){
   const o=document.getElementById('origin'),d=document.getElementById('dest')
@@ -173,17 +208,20 @@ function doSearch(){
   const o=document.getElementById('origin').value
   const d=document.getElementById('dest').value
   const dep=document.getElementById('depart').value
-  const ret=document.getElementById('ret').value
+  const ret=tripType==='round'?document.getElementById('ret').value:''
   const pax=document.getElementById('pax').value
   const cabin=document.getElementById('cabin').value
   if(o===d){showError('Origin and destination must be different');return}
   if(!dep){showError('Please select a departure date');return}
+  if(tripType==='round'&&!ret){showError('Please select a return date');return}
   hideError()
   const btn=document.getElementById('searchBtn')
   btn.disabled=true;btn.textContent='⏳ Searching...'
   setTimeout(()=>{
     const cabinMult={economy:1,premium_economy:1.7,business:3.2,first:5.5}
-    const base=(400+Math.random()*600)*cabinMult[cabin]
+    // One way is ~60% of round trip price
+    const tripMult=tripType==='oneway'?0.6:1
+    const base=(400+Math.random()*600)*cabinMult[cabin]*tripMult
     results=SOURCES.map(s=>({
       ...s,
       price:Math.round(genPrice(base)*parseInt(pax)),
@@ -191,12 +229,13 @@ function doSearch(){
       stops:genStops(),
       duration:genDur(),
       depTime:genTime(),
-      origin:o,dest:d,depart:dep,ret,pax,cabin,
+      origin:o,dest:d,depart:dep,ret,pax,cabin,tripType,
       url:s.url(o,d,dep,ret,pax)
     })).sort((a,b)=>a.price-b.price)
     document.getElementById('emptyState').style.display='none'
     document.getElementById('resultsList').style.display='block'
-    document.getElementById('metaText').textContent=`${o} → ${d} · ${dep}${ret?' – '+ret:''} · ${pax} adult${pax>1?'s':''}`
+    document.getElementById('metaText').textContent=`${o} → ${d}${tripType==='round'?' → '+o:''} · ${dep}${ret?' – '+ret:''} · ${pax} adult${pax>1?'s':''}`
+    document.getElementById('tripNote').textContent=tripType==='oneway'?'✈ One Way prices':'✈ Round Trip prices (both directions included)'
     renderResults()
     renderCompare()
     renderLinks()
@@ -221,12 +260,13 @@ function renderResults(){
         <div class="airline-logo" style="background:${f.color}18;color:${f.color}">${f.icon}</div>
         <div>
           <div style="font-size:14px;font-weight:500">${f.name}${isBest?'<span class="best-badge">★ Best price</span>':''}</div>
-          <div class="muted">${f.origin} → ${f.dest} · ${f.depTime} · ${f.type==='agg'?'Aggregator':'Airline'}</div>
+          <div class="muted">${f.origin} → ${f.dest}${f.tripType==='round'?' → '+f.origin:''} · ${f.depTime} · ${f.type==='agg'?'Aggregator':'Airline'}</div>
         </div>
       </div>
       <div class="flight-mid">
         <span class="stops-badge">${f.stops===0?'Direct':f.stops+' stop'}</span>
         <div class="muted" style="margin-top:4px">${f.duration}</div>
+        <div class="muted" style="margin-top:2px">${f.tripType==='oneway'?'One Way':'Round Trip'}</div>
       </div>
       <div class="flight-right">
         <div class="price${isBest?' best-price':''}">AED ${f.price.toLocaleString()}</div>
@@ -239,11 +279,12 @@ function renderResults(){
 }
 
 function renderCompare(){
-  if(!results.length){document.getElementById('compareTable').innerHTML='<div style="text-align:center;padding:2rem;color:#6b6b68">Search first</div>';return}
+  if(!results.length) return
   const sorted=[...results].sort((a,b)=>a.price-b.price)
   const cheapest=sorted[0].price
   document.getElementById('compareTable').innerHTML=`
-    <div style="font-size:14px;font-weight:500;margin-bottom:12px">${sorted[0].origin} → ${sorted[0].dest} · ${sorted[0].pax} adult · ${sorted[0].cabin}</div>
+    <div style="font-size:14px;font-weight:500;margin-bottom:4px">${sorted[0].origin} → ${sorted[0].dest}${sorted[0].tripType==='round'?' → '+sorted[0].origin:''}</div>
+    <div style="font-size:12px;color:#6b6b68;margin-bottom:12px">${sorted[0].tripType==='oneway'?'✈ One Way':'✈ Round Trip'} · ${sorted[0].pax} adult · ${sorted[0].cabin} · ${sorted[0].depart}${sorted[0].ret?' – '+sorted[0].ret:''}</div>
     <div style="overflow-x:auto"><table>
       <thead><tr><th>#</th><th>Source</th><th>Type</th><th>Stops</th><th>Duration</th><th>Total (AED)</th><th>Per person</th><th>vs cheapest</th><th>Book</th></tr></thead>
       <tbody>${sorted.map((f,i)=>{
@@ -267,7 +308,8 @@ function renderCompare(){
 
 function renderLinks(){
   const o=document.getElementById('origin').value,d=document.getElementById('dest').value
-  const dep=document.getElementById('depart').value,ret=document.getElementById('ret').value
+  const dep=document.getElementById('depart').value
+  const ret=tripType==='round'?document.getElementById('ret').value:''
   const pax=document.getElementById('pax').value
   const html=['agg','air'].map(type=>`
     <div class="sec-label">${type==='agg'?'Aggregators':'Airlines'}</div>
@@ -282,7 +324,8 @@ function renderLinks(){
 
 function openAll(){
   const o=document.getElementById('origin').value,d=document.getElementById('dest').value
-  const dep=document.getElementById('depart').value,ret=document.getElementById('ret').value
+  const dep=document.getElementById('depart').value
+  const ret=tripType==='round'?document.getElementById('ret').value:''
   const pax=document.getElementById('pax').value
   SOURCES.forEach((s,i)=>setTimeout(()=>window.open(s.url(o,d,dep,ret,pax),'_blank'),i*300))
 }
